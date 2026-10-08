@@ -1,0 +1,266 @@
+<!DOCTYPE html><html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Хөдөлдөг уушиг — анатоми ба Slow motion</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#0b1220;--pn:#111a2e;--bd:#24324f;--tx:#e2e8f0;--mu:#8da0bd;--ac:#38bdf8}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef2f8;--pn:#fff;--bd:#cbd5e1;--tx:#0f172a;--mu:#51627f;--ac:#0369a1}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.45 'Segoe UI',system-ui,Arial,sans-serif}
+header{padding:10px 14px;display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--bd)}header b{font-size:15px;color:var(--ac)}header span{color:var(--mu);font-size:12px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;padding:10px}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+canvas{display:block;width:100%;border-radius:10px;border:1px solid var(--bd)}
+#ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.b{padding:5px 11px;border-radius:18px;border:1px solid var(--bd);background:var(--pn);color:var(--mu);cursor:pointer;font-size:12px}
+.b.on{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
+#sb{flex:1;min-width:140px;accent-color:#38bdf8}
+aside{display:flex;flex-direction:column;gap:8px}
+.pn{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.pn h4{margin:0 0 6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)}
+#chips,#ages{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip{padding:6px;border-radius:8px;border:1px solid var(--bd);background:transparent;color:var(--mu);cursor:pointer;font-size:11px;text-align:left}
+.chip.on{color:#fff;border-color:currentColor;background:rgba(56,189,248,.14)}
+#card b{display:block;margin-bottom:4px;font-size:14px}#card p{margin:0 0 6px;color:var(--mu)}
+.r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bd);font-size:12px}.r span:first-child{color:var(--mu)}.r span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mu);margin-top:6px}label input[type=range]{flex:1;accent-color:#38bdf8}
+</style></head><body>
+<header><b>🫁 Хөдөлдөг уушиг</b><span>Уушгийн анатоми · Амьсгалын аппарат · Альвеол · Slow motion</span></header>
+<main>
+<section style="min-width:0"><div style="overflow-x:auto"><canvas id="c"></canvas></div>
+<div id="ctl"><button id="pl" class="b on">⏸ Зогсоох</button><span id="sp"></span><input id="sb" type="range" min="0" max="1000" value="0" title="Амьсгалын мөчлөг"></div></section>
+<aside>
+<div class="pn"><h4>Насны бүлэг</h4><div id="ages"></div><div id="ageinfo"></div></div>
+<div class="pn"><h4>Амьсгалын үе шат</h4><div id="chips"></div></div>
+<div class="pn" id="card"></div>
+<div class="pn"><h4>Хэмжилт</h4>
+<div class="r"><span>Агаарын хэмжээ</span><span id="rV"></span></div>
+<div class="r"><span>Урсгал</span><span id="rF"></span></div>
+<div class="r"><span>Paw (гуурс)</span><span id="rPaw"></span></div>
+<div class="r"><span>Palv (альвеол)</span><span id="rPalv"></span></div>
+<div class="r"><span>Ppl (гялтан)</span><span id="rPpl"></span></div>
+<div class="r"><span>Ptp = Palv − Ppl</span><span id="rPtp"></span></div></div>
+<div class="pn"><h4>Тохиргоо</h4>
+<button class="b" id="vt">Горим: өөрөө амьсгалах</button>
+<label>TV <input id="tv" type="range" min="15" max="900" step="5" value="500"><span id="tvv">500</span></label>
+<label>PEEP <input id="pe" type="range" min="0" max="12" value="5"><span id="pev">5</span></label>
+<label>RR <input id="rr" type="range" min="6" max="30" value="14"><span id="rrv">14</span></label>
+<label><input type="checkbox" id="stp"> Үе шат бүрт автоматаар зогсох</label></div>
+</aside></main>
+<script>
+const $=id=>document.getElementById(id),cv=$('c'),g=cv.getContext('2d');
+const S={rr:14,vent:false,speed:1,play:true,u:0,stop:false,tv:500,peep:5,cmp:50,sw:3,res:1,k:1,ch:1,bag:1,sat:1,lt:0,ar:1,ad:250,an:'~480 сая',hr:72,bagL:'2–3 л'};
+let TI=.4,PE=.55,KK=3.2;
+const VW=1260,VH=600;let sc=1,V=0,F=0;
+function resize(){const w=Math.max(cv.parentNode.clientWidth,900),d=devicePixelRatio||1;cv.style.width=w+'px';cv.style.height=w*VH/VW+'px';cv.width=w*d;cv.height=w*VH/VW*d;sc=w*d/VW}
+addEventListener('resize',resize);resize();
+const ST=[[0,.15],[.15,.4],[.4,.55],[.55,1]],BC=['#38bdf8','#818cf8','#34d399','#f59e0b'];
+const TX=[['1 · Инспираци эхлэх','Диафрагм агшиж доош хөдөлнө, хавирга хоорондын булчин хавирга өргөнө. Цээжний хөндий томорч гялтангийн даралт Ppl улам сөрөг болно (хэмжилтээс харна уу).','Аппаратын горимд цээж өөрөө тэлэхгүй: аппарат агаарыг эерэг даралтаар түлхэнэ.'],
+['2 · Даралтын тархалт','Альвеолын даралт агаар мандлаас бага (Palv < 0) болж, даралтын зөрүүгээр агаар трахей → гол гуурс → салаа гуурсаар дамжин бүх дэлбээнд тархана. Эхлээд дээд, дараа нь доод дэлбээ дүүрнэ.','Аппаратын горимд Paw > Palv: даралт гуурснаас альвеол руу буурч тархана.'],
+['3 · Хийн солилцоо','Альвеол дүүрч, O₂ нимгэн мембраныг диффузээр дамжин капилляр дахь улаан эс рүү шилжинэ. Эсрэг чиглэлд CO₂ цуснаас альвеол руу гарч хуримтлагдана.','Аппаратын горимд PEEP альвеолыг задгай байлгаж солилцоог дэмжинэ.'],
+['4 · Экспираци — CO₂ гарах','Диафрагм суларч, уушиг уян чанараараа буцан хумигдана. Palv > 0 болж CO₂-той агаар гуурсаар дамжин трахейгаар гадагш гарна (идэвхгүй процесс).','Аппаратын горимд экспираци мөн идэвхгүй: Paw PEEP хүртэл буурна.']];
+const Vf=u=>{if(u<TI)return .5*(1-Math.cos(Math.PI*u/TI));if(u<PE)return 1;const s=(u-PE)/(1-PE);return(Math.exp(-KK*s)-Math.exp(-KK))/(1-Math.exp(-KK))};
+const Ff=u=>(Vf(Math.min(u+.004,1))-Vf(Math.max(u-.004,0)))/.008/4;
+const Pr=u=>{const v=Vf(u),f=Ff(u);const dp=S.tv/S.cmp;return S.vent?{ppl:-5+4*v,palv:S.peep+dp*v,paw:S.peep+dp*v+3*S.res*f}:{ppl:-5-S.sw*v,palv:-1.2*S.res*f,paw:-.6*S.res*f}};
+const stageOf=u=>ST.findIndex(s=>u>=s[0]&&u<s[1]);
+const T=(x,y)=>[259+(x-259)*(1+.075*S.ch*V),y+(y-95)*.07*S.ch*V];
+// ---- bronchial tree ----
+const segs=[],leaves=[],LU=[{cx:176,cy:280,rx:66,ry:165},{cx:344,cy:276,rx:58,ry:160}];
+function grow(par,x,y,a,len,w,d,lu){let ex,ey,k=1;const L=LU[lu];
+ for(let i=0;i<8;i++){ex=x+Math.cos(a)*len*k;ey=y+Math.sin(a)*len*k;if(((ex-L.cx)/L.rx)**2+((ey-L.cy)/L.ry)**2<.62)break;k*=.8}
+ segs.push({x1:x,y1:y,x2:ex,y2:ey,w,d,par});const id=segs.length-1;
+ if(d>=6){leaves.push(id);return}
+ const sp=.55-d*.03,dn=(Math.PI/2-a)*.15;
+ grow(id,ex,ey,a-sp+dn,len*.86,w*.74,d+1,lu);grow(id,ex,ey,a+sp+dn,len*.86,w*.74,d+1,lu)}
+segs.push({x1:259,y1:28,x2:259,y2:150,w:13,d:0,par:-1});
+(function(){const P=Math.PI/2;
+ let a=P+.95;segs.push({x1:259,y1:150,x2:259+55*Math.cos(a),y2:150+55*Math.sin(a),w:9,d:1,par:0});
+ let s=segs[1];[P+1.9,P+1.1,P+.25].forEach(b=>grow(1,s.x2,s.y2,b,58,4.2,2,0));
+ a=P-1;segs.push({x1:259,y1:150,x2:259+70*Math.cos(a),y2:150+70*Math.sin(a),w:9,d:1,par:0});
+ s=segs[segs.length-1];const id=segs.length-1;[P-1.9,P-.3].forEach(b=>grow(id,s.x2,s.y2,b,64,4.2,2,1))})();
+const paths=leaves.map(id=>{const ch=[];let i=id;while(i>=0){ch.push(i);i=segs[i].par}ch.reverse();const p=[[segs[ch[0]].x1,segs[ch[0]].y1]];ch.forEach(k=>p.push([segs[k].x2,segs[k].y2]));return p});
+const onPath=(p,f)=>{const n=p.length-1,t=Math.min(f,.999)*n,i=Math.floor(t),q=t-i;return T(p[i][0]+(p[i+1][0]-p[i][0])*q,p[i][1]+(p[i+1][1]-p[i][1])*q)};
+// ---- shapes ----
+const TEX=[];for(let i=0,k=7;i<380;i++){k=(k*9301+49297)%233280;const a=k/233280;k=(k*9301+49297)%233280;TEX.push([100+a*315,95+k/233280*355])}
+const R_OUT=[[232,92],[170,98],[128,150],[108,230],[104,320],[115,400],[150,438],[215,448],[252,425],[256,350],[254,250],[252,160],[244,112]];
+const L_OUT=[[284,95],[340,100],[385,150],[408,235],[412,330],[400,405],[360,440],[312,450],[278,428],[288,390],[300,352],[280,312],[268,245],[268,165],[276,112]];
+const LOBES=[[[80,70],[270,70],[270,218],[254,218],[200,230],[108,236],[80,238]],[[80,236],[108,236],[200,230],[254,218],[270,218],[270,306],[254,306],[190,320],[106,318],[80,318]],[[80,318],[106,318],[190,320],[254,306],[270,306],[270,470],[80,470]],
+[[260,70],[430,70],[430,312],[411,310],[330,288],[268,262],[260,262]],[[260,262],[268,262],[330,288],[411,310],[430,312],[430,470],[260,470]]];
+const FIS=[[[254,218],[200,230],[108,236]],[[254,306],[190,320],[106,318]],[[268,262],[330,288],[411,310]]];
+function blob(P){const q=P.map(p=>T(p[0],p[1])),n=q.length;g.beginPath();g.moveTo((q[n-1][0]+q[0][0])/2,(q[n-1][1]+q[0][1])/2);
+ for(let i=0;i<n;i++){const a=q[i],b=q[(i+1)%n];g.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2)}g.closePath()}
+function poly(P){g.beginPath();P.forEach((p,i)=>{const q=T(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.closePath()}
+function line(x1,y1,x2,y2,c,w){g.strokeStyle=c;g.lineWidth=w;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke()}
+function txt(s,x,y,c,sz,al){g.fillStyle=c;g.font=(sz||10)+'px Segoe UI,Arial';g.textAlign=al||'center';g.fillText(s,x,y)}
+function arrow(x,y,dx,dy,c){g.fillStyle=c;g.save();g.translate(x,y);g.rotate(Math.atan2(dy,dx));g.beginPath();g.moveTo(10,0);g.lineTo(-6,-7);g.lineTo(-6,7);g.fill();g.restore()}
+// ---- particles ----
+let P=[],spawn=0,M=[],mAcc=0,rbc=0;
+function drawBody(){
+ // ribs + sternum
+ g.lineCap='round';g.fillStyle='rgba(226,232,240,.08)';g.fillRect(253,100,12,240);
+ for(let i=0;i<7;i++)for(const s of[-1,1]){const y=112+i*50;g.beginPath();g.moveTo(259+s*14,y+22);g.quadraticCurveTo(259+s*130,y-26-8*V,259+s*(190+12*V),y+14+i*3-5*V);g.strokeStyle='rgba(226,232,240,.08)';g.lineWidth=7;g.stroke();g.strokeStyle='rgba(226,232,240,.14)';g.lineWidth=1.2;g.stroke()}
+ // diaphragm
+ const h=38*(1-.6*V),y0=452+25*V+.8*h-6;
+ g.beginPath();g.moveTo(30,600);g.lineTo(30,y0+10);g.quadraticCurveTo(145,y0-h*1.6,259,y0+6);g.quadraticCurveTo(373,y0-h*1.6,488,y0+10);g.lineTo(488,600);g.closePath();
+ const gr=g.createLinearGradient(0,y0-h,0,y0+60);gr.addColorStop(0,'#9a3b4d');gr.addColorStop(1,'#4a1c2a');g.fillStyle=gr;g.fill();g.strokeStyle='#d46a82';g.lineWidth=2;g.stroke();
+ txt('Диафрагм',259,y0+38,'#f5c0cb',11);
+ const d=F>.05?1:F<-.05?-1:0;if(d){const c=d>0?'#38bdf8':'#f59e0b';for(const x of[150,370])arrow(x,y0+16,0,d,c);
+  for(let i=0;i<3;i++)for(const s of[-1,1])arrow(259+s*(200+12*V),160+i*90,s*d,0,c)}
+}
+function drawLungs(){
+ g.fillStyle='rgba(120,40,60,.4)';g.beginPath();g.roundRect(248,100,32,340,10);g.fill();
+ {const h=T(288,345);g.save();g.translate(h[0],h[1]);g.rotate(-.35);g.beginPath();g.ellipse(0,0,36,56,0,0,6.29);const hg=g.createLinearGradient(-30,-50,30,50);hg.addColorStop(0,'#c0394f');hg.addColorStop(1,'#6b1425');g.fillStyle=hg;g.fill();g.strokeStyle='#f0768b';g.lineWidth=1.5;g.stroke();g.restore()}
+ const pa=Pr(S.u).palv,al=Math.min(.45,Math.abs(pa)/(S.vent?18:2.5)*.45),oc=pa<0?'56,189,248':'251,146,60';
+ [[R_OUT,[0,1,2]],[L_OUT,[3,4]]].forEach(([O,ls])=>{
+  g.save();blob(O);g.shadowColor='rgba(244,114,182,.5)';g.shadowBlur=6+14*V;g.fillStyle='#b4506a';g.fill();g.restore();
+  g.save();blob(O);g.clip();
+  ls.forEach((l,i)=>{poly(LOBES[l]);g.fillStyle=`hsl(${352+l*2},${(52+10*V)*S.sat}%,${50+9*V-l*2.5+S.lt}%)`;g.fill()});
+  g.fillStyle=`rgba(${oc},${al})`;g.fillRect(0,0,VW,VH);
+  g.fillStyle='rgba(255,235,240,.2)';g.beginPath();TEX.forEach(p=>{const q=T(p[0],p[1]);g.moveTo(q[0]+1.4,q[1]);g.arc(q[0],q[1],1.4,0,6.29)});g.fill();
+  const gl=g.createRadialGradient(...T(O===R_OUT?170:350,170),5,...T(O===R_OUT?170:350,260),230);gl.addColorStop(0,'rgba(255,255,255,.16)');gl.addColorStop(1,'rgba(0,0,0,.25)');g.fillStyle=gl;g.fillRect(0,0,VW,VH);
+  g.restore();blob(O);g.strokeStyle='rgba(255,200,215,.8)';g.lineWidth=2;g.stroke()});
+ g.strokeStyle='rgba(110,25,55,.65)';g.lineWidth=1.8;
+ FIS.forEach(f=>{g.beginPath();f.forEach((p,i)=>{const q=T(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke()});
+ g.lineCap='round';
+ const vl=(a,b,c,w)=>{const p=T(a[0],a[1]),q=T(b[0],b[1]);line(p[0],p[1],q[0],q[1],c,w)};
+ vl([280,300],[268,236],'rgba(90,120,255,.55)',7);vl([268,236],[226,200],'rgba(90,120,255,.5)',4);vl([268,236],[306,214],'rgba(90,120,255,.5)',4);vl([222,238],[262,290],'rgba(200,40,50,.5)',3.5);vl([308,250],[290,292],'rgba(200,40,50,.5)',3.5);
+ // vessels + bronchi
+ segs.forEach((s,i)=>{if(!i)return;const[a,b]=T(s.x1,s.y1),[c,e]=T(s.x2,s.y2),dx=e-b,dy=a-c,l=Math.hypot(dx,dy)||1,nx=dx/l,ny=dy/l,o=s.w*.55+1.6,w=Math.max(.8,s.w*.38);
+  if(s.d>=1){line(a+nx*o,b+ny*o,c+nx*o,e+ny*o,'rgba(120,150,255,.55)',w*.8);line(a-nx*o,b-ny*o,c-nx*o,e-ny*o,'rgba(200,40,50,.6)',w*.8)}
+  line(a,b,c,e,'rgba(250,240,225,.9)',Math.max(.9,s.w*.8*(1+.08*V)))});
+ const[t0x,t0y]=T(259,28),[t1x,t1y]=T(259,150);line(t0x,t0y,t1x,t1y,'#efe3cc',13);
+ for(let y=34;y<146;y+=7){const q=T(259,y);line(q[0]-6,q[1],q[0]+6,q[1],'rgba(120,90,60,.45)',1.2)}
+ // alveolar clusters at tips
+ const r=2.4*(1+.5*V);g.beginPath();leaves.forEach(id=>{const[x,y]=T(segs[id].x2,segs[id].y2);for(let k=0;k<5;k++){const a=k*1.256+id,rx=x+Math.cos(a)*r*.9,ry=y+Math.sin(a)*r*.9;g.moveTo(rx+r,ry);g.arc(rx,ry,r,0,6.29)}});
+ g.fillStyle='rgba(255,225,232,.55)';g.fill();g.strokeStyle='rgba(200,30,50,.85)';g.lineWidth=.9;g.stroke();
+ // flow particles
+ P.forEach(p=>{const q=onPath(paths[p.i],p.dir>0?p.f:1-p.f);g.fillStyle=p.dir>0?'#7dd3fc':'#fbbf24';g.shadowColor=g.fillStyle;g.shadowBlur=8;g.beginPath();g.arc(q[0],q[1],2.6,0,6.29);g.fill()});g.shadowBlur=0;
+ // labels
+ [['Баруун уушиг',120,70],['Дээд дэлбээ',148,128],['Дунд дэлбээ',140,262],['Доод дэлбээ',160,420],['Зүүн уушиг',400,70],['Дээд дэлбээ',372,140],['Доод дэлбээ',360,420]].forEach(([s,x,y],i)=>{const q=T(x,y);txt(s,q[0],q[1],i%7==0||i==4?'#fde2e8':'rgba(255,255,255,.85)',i%7==0||i==4?11:9)});
+ txt('Трахей',250,44,'#cbd5e1',11,'right');txt('ETT',270,22,'#f59e0b',9,'left');const hl=T(284,340);txt('Зүрх',hl[0],hl[1],'#ffd9df',10);
+ 
+ txt('Артери (хүчилтөрөгчгүй)',60,530,'#8aa4ff',10,'left');txt('Вен (хүчилтөрөгчтэй)',60,546,'#f87171',10,'left');txt('Гуурсан хоолой',60,562,'#efe3cc',10,'left');
+}
+function drawAlv(dt,u){
+ const cx=715,cy=170,R=58*S.ar*(1+.26*V);
+ g.save();g.beginPath();g.roundRect(552,12,336,290,14);g.fillStyle='#0f1930';g.fill();g.strokeStyle='#2b3b5e';g.lineWidth=1;g.stroke();g.clip();
+ txt('Альвеол ≈ '+S.ad+' мкм · нийт '+S.an,720,32,'#9fb3d1',11);
+ // duct
+ line(552,cy,cx-R,cy,'rgba(244,232,210,.25)',22);line(552,cy,cx-R,cy,'rgba(15,25,48,.9)',14);txt('Альвеолын сувгаар →',590,cy-18,'#8da0bd',9);
+ // neighbours
+ for(let k=0;k<5;k++){const a=-1.25+k*1.27,d=R+30+8*V,rn=26*(1+.22*V),x=cx+Math.cos(a)*d,y=cy+Math.sin(a)*d*.95;
+  g.beginPath();g.arc(x,y,rn,0,6.29);g.fillStyle='rgba(255,150,175,.1)';g.fill();g.strokeStyle='rgba(255,150,175,.45)';g.lineWidth=2;g.stroke();
+  g.beginPath();g.arc(x,y,rn+6,0,6.29);g.strokeStyle='rgba(200,40,60,.4)';g.lineWidth=5;g.setLineDash([6,5]);g.stroke();g.setLineDash([])}
+ // main alveolus
+ const gr=g.createRadialGradient(cx-10,cy-10,5,cx,cy,R);gr.addColorStop(0,'#16345a');gr.addColorStop(1,'#2d2447');
+ g.beginPath();g.arc(cx,cy,R,0,6.29);g.fillStyle=gr;g.fill();g.strokeStyle='#f0a1b5';g.lineWidth=3;g.stroke();
+ // capillary ring (wavy)
+ g.beginPath();for(let i=0;i<=120;i++){const a=i/120*6.2832,r=R+11+2.5*Math.sin(a*9);const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?g.lineTo(x,y):g.moveTo(x,y)}
+ g.strokeStyle='rgba(185,28,28,.42)';g.lineWidth=9;g.stroke();g.strokeStyle='rgba(248,113,113,.5)';g.lineWidth=1;g.stroke();
+ // red blood cells
+ for(let i=0;i<16;i++){const a=rbc+i*6.2832/16,q=(((a+1.5708)%6.2832)+6.2832)%6.2832/6.2832,k=Math.min(1,q*1.5),r=R+11+2.5*Math.sin(a*9);
+  g.save();g.translate(cx+Math.cos(a)*r,cy+Math.sin(a)*r);g.rotate(a+1.5708);g.beginPath();g.ellipse(0,0,5.5,3.4,0,0,6.29);
+  g.fillStyle=`rgb(${99+140*k|0},${102-34*k|0},${241-173*k|0})`;g.fill();g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=.8;g.stroke();g.restore()}
+ // molecules
+ const st=stageOf(u);
+ if(dt>0){
+  if(st>=1&&st<=2){mAcc+=dt*(st==2?10:5);while(mAcc>1){mAcc--;const a=Math.random()*6.28;M.push({t:'o',a,r0:Math.random()*.55,s:0});if(st==2||Math.random()<.4)M.push({t:'c',a:Math.random()*6.28,ai:Math.random()*6.28,ri:Math.random()*.5,s:0,out:0})}}
+  M.forEach(m=>{if(m.t=='o')m.s+=dt*.7;else if(!m.out){m.s=Math.min(1,m.s+dt*.7);if(u>=PE||m.late){m.out=1;m.fx=m.cx;m.fy=m.cy;m.s2=0}}else m.s2+=dt*.55});
+  M=M.filter(m=>m.t=='o'?m.s<1:!(m.out&&m.s2>=1))}
+ M.forEach(m=>{let x,y;const w=a=>[cx+Math.cos(a)*(R+10),cy+Math.sin(a)*(R+10)];
+  if(m.t=='o'){const i=[cx+Math.cos(m.a)*m.r0*R,cy+Math.sin(m.a)*m.r0*R],e=w(m.a);x=i[0]+(e[0]-i[0])*m.s;y=i[1]+(e[1]-i[1])*m.s}
+  else{const e=w(m.a),i=[cx+Math.cos(m.ai)*m.ri*R,cy+Math.sin(m.ai)*m.ri*R];x=e[0]+(i[0]-e[0])*m.s+Math.sin(performance.now()/300+m.a)*2*m.s;y=e[1]+(i[1]-e[1])*m.s+Math.cos(performance.now()/260+m.a)*2*m.s;m.cx=x;m.cy=y;
+   if(m.out){x=m.fx+(548-m.fx)*m.s2;y=m.fy+(cy-m.fy)*m.s2}}
+  g.beginPath();g.arc(x,y,4.2,0,6.29);g.fillStyle=m.t=='o'?'#60a5fa':'#fbbf24';g.shadowColor=g.fillStyle;g.shadowBlur=7;g.fill();g.shadowBlur=0;txt(m.t=='o'?'O₂':'CO₂',x,y-6,'rgba(255,255,255,.8)',7)});
+ txt('Капилляр',cx+R+30,cy+R*.95+32,'#f87171',10,'left');txt('Альвеолын хана (~0.5 мкм)',cx,cy+R+54,'#f0a1b5',10);
+ txt('● O₂',586,282,'#60a5fa',10,'left');txt('● CO₂',630,282,'#fbbf24',10,'left');txt('● Улаан эс',680,282,'#ef4444',10,'left');
+ g.restore();
+}
+function drawChart(u){
+ const x0=576,w=296,y0=330,h=72;
+ g.beginPath();g.roundRect(552,312,336,276,14);g.fillStyle='#0f1930';g.fill();g.strokeStyle='#2b3b5e';g.lineWidth=1;g.stroke();
+ ST.forEach((s,i)=>{g.fillStyle=BC[i]+'22';g.fillRect(x0+s[0]*w,y0-4,(s[1]-s[0])*w,h*3);txt(String(i+1),x0+(s[0]+s[1])/2*w,y0+h*3+12,BC[i],11)});
+ const rows=[['Көлөм (мл)',x=>Vf(x)*S.tv,'#38bdf8',v=>v.toFixed(0)],['Palv (см H₂O)',x=>Pr(x).palv,'#fbbf24',v=>v.toFixed(1)],['Ppl (см H₂O)',x=>Pr(x).ppl,'#c4b5fd',v=>v.toFixed(1)]];
+ rows.forEach((r,k)=>{let mn=1e9,mx=-1e9;const ys=[];for(let i=0;i<=100;i++){const v=r[1](i/100);ys.push(v);mn=Math.min(mn,v);mx=Math.max(mx,v)}
+  const pad=(mx-mn)*.18||1;mn-=pad;mx+=pad;const by=y0+k*h,Y=v=>by+h-8-(v-mn)/(mx-mn)*(h-26);
+  if(mn<0&&mx>0){g.setLineDash([3,4]);line(x0,Y(0),x0+w,Y(0),'rgba(148,163,184,.4)',1);g.setLineDash([])}
+  g.beginPath();ys.forEach((v,i)=>{const x=x0+i/100*w;i?g.lineTo(x,Y(v)):g.moveTo(x,Y(v))});g.strokeStyle=r[2];g.lineWidth=2;g.stroke();
+  const cur=r[1](u);txt(r[0]+': '+r[3](cur),x0,by+10,r[2],10,'left');g.beginPath();g.arc(x0+u*w,Y(cur),4,0,6.29);g.fillStyle=r[2];g.fill()});
+ line(x0+u*w,y0-4,x0+u*w,y0+h*3-4,'rgba(255,255,255,.7)',1.2);
+ txt('Мөчлөг: 1 Инспираци · 2 Даралт · 3 Солилцоо · 4 Экспираци',720,578,'#8da0bd',9);
+}
+// ---- anaesthesia machine ----
+const mk=pts=>{const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));return{pts,cum,len:cum[cum.length-1]}};
+const IP=mk([[840,80],[840,150],[840,215],[690,215],[575,215],[575,235],[560,275],[500,275],[500,8],[259,8],[259,28]]);
+const EP=mk([[259,28],[259,8],[500,8],[500,275],[560,275],[575,315],[575,345],[690,345],[740,345],[740,440],[840,440],[840,375],[840,255],[840,215]]);EP.cut=EP.cum[11]/EP.len;
+const AP=mk([[740,440],[672,440],[672,520],[650,520]]);
+const at=(p,f)=>{const d=f*p.len;let i=1;while(i<p.cum.length-1&&p.cum[i]<d)i++;const q=(d-p.cum[i-1])/((p.cum[i]-p.cum[i-1])||1);return[p.pts[i-1][0]+(p.pts[i][0]-p.pts[i-1][0])*q,p.pts[i-1][1]+(p.pts[i][1]-p.pts[i-1][1])*q]};
+let MD=[],mdA=0;
+function tube(pts,hot,col,dash){g.lineCap='round';g.lineJoin='round';g.setLineDash([]);g.beginPath();pts.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.strokeStyle='#1e3a5f';g.lineWidth=9;g.stroke();if(hot){if(dash)g.setLineDash([6,5]);g.strokeStyle=col;g.lineWidth=4;g.stroke();g.setLineDash([])}}
+function bx(x,y,w,h,c,l,s){g.beginPath();g.roundRect(x-w/2,y-h/2,w,h,7);g.fillStyle='#0c1a2e';g.fill();g.strokeStyle=c;g.lineWidth=1.8;g.stroke();if(l)txt(l,x,y-(s?1:-3),'#f1f5f9',10);if(s)txt(s,x,y+11,'#94a3b8',8.5)}
+function valve(x,y,open,c,l,dy){g.beginPath();g.arc(x,y,13,0,6.29);g.fillStyle=open?c+'44':'#1e293b';g.fill();g.strokeStyle=open?c:'#475569';g.lineWidth=2;g.stroke();g.save();g.translate(x,y);g.rotate(open?-.6:0);line(-8,0,8,0,open?c:'#64748b',3);g.restore();txt(l,x,y+dy,'#cbd5e1',9)}
+function drawMachine(sdt){
+ const ins=F>.02,exh=F<-.02,cy='rgba(56,189,248,.55)',am='rgba(251,191,36,.55)';
+ g.beginPath();g.roundRect(525,34,367,556,14);g.fillStyle='#0f1930';g.fill();g.strokeStyle='#2b3b5e';g.lineWidth=1;g.stroke();
+ txt('Мэдээгүйжүүлэх аппарат — дугуй хэлхээ',708,54,'#9fb3d1',11);
+ tube([[840,80],[840,215]],ins,cy);tube([[840,215],[690,215],[575,215],[575,235],[560,275]],ins,cy);
+ tube([[560,275],[500,275],[500,8],[259,8],[259,28]],ins||exh,ins?cy:am);
+ tube([[560,275],[575,315],[575,345],[690,345],[740,345],[740,440]],exh,am);tube([[740,440],[840,440],[840,375]],exh,am);tube([[840,255],[840,215]],exh,'rgba(167,139,250,.6)');
+ tube([[740,440],[740,475]],exh,am);tube([[740,440],[672,440]],false);tube([[672,440],[672,520],[650,520]],exh&&F<-.3,'rgba(74,222,128,.7)',1);
+ bx(840,80,112,44,'#2563eb','Хийн нийлүүлэлт','O₂ · N₂O · Air');bx(840,150,112,44,'#d97706','Vaporizer','Sevoflurane');
+ g.beginPath();g.arc(840,215,5,0,6.29);g.fillStyle='#38bdf8';g.fill();txt('CGO',852,206,'#38bdf8',9,'left');
+ valve(690,215,ins,'#38bdf8','Inspiratory valve',-19);valve(690,345,exh,'#f87171','Expiratory valve',27);
+ g.beginPath();g.arc(560,275,10,0,6.29);g.fillStyle='#334155';g.fill();g.strokeStyle='#94a3b8';g.lineWidth=2;g.stroke();txt('Y-piece',527,300,'#94a3b8',9,'left');
+ bx(840,315,64,120,'#7c3aed','','');txt('CO₂',840,270,'#c4b5fd',10);txt('absorber',840,281,'#c4b5fd',8.5);
+ for(let i=0;i<14;i++){g.beginPath();g.arc(840+Math.sin(i*2.3+performance.now()/900)*18,292+i*5,2.6,0,6.29);g.fillStyle=i<7?'#8b5cf6':'#c4b5fd';g.fill()}
+ txt('Soda lime',840,368,'#6ee7b7',8.5);
+ g.beginPath();g.arc(672,440,12,0,6.29);g.fillStyle='#422006';g.fill();g.strokeStyle='#d97706';g.lineWidth=2;g.stroke();g.beginPath();g.arc(672,440,4,0,6.29);g.fillStyle='#f59e0b';g.fill();txt('APL',672,419,'#fbbf24',9);
+ g.beginPath();g.arc(740,440,4,0,6.29);g.fillStyle='#94a3b8';g.fill();
+ bx(740,487,64,22,'#16a34a','Bag/Vent');
+ const bs=(.85+.3*(1-V))*S.bag,bg=g.createRadialGradient(740,535,3,740,535,30);bg.addColorStop(0,'#34d399');bg.addColorStop(1,'#059669');
+ g.beginPath();g.ellipse(740,535,20*bs,28*bs,0,0,6.29);g.fillStyle=bg;g.fill();g.strokeStyle='#6ee7b7';g.lineWidth=1.5;g.stroke();txt('Амьсгалын уут '+S.bagL,740,582,'#6ee7b7',9);
+ bx(610,520,80,44,'#16a34a','Scavenger','илүүдэл хий →');
+ txt('● O₂ + хий (инспираци)',535,552,'#7dd3fc',9,'left');txt('● CO₂-той хий (экспираци)',535,565,'#fbbf24',9,'left');txt('● CO₂ шингэсэн хий',535,578,'#a78bfa',9,'left');
+ if(sdt>0){const a=Math.abs(F);mdA+=a*sdt*16;while(mdA>1){mdA--;MD.push({p:F>0?IP:EP,f:0})}
+  if(F<-.3&&Math.random()<sdt*3)MD.push({p:AP,f:0});
+  MD.forEach(d=>d.f+=sdt*(100+120*a)/d.p.len);MD=MD.filter(d=>d.f<1)}
+ MD.forEach(d=>{const q=at(d.p,d.f);g.fillStyle=d.p===IP?'#7dd3fc':d.p===AP?'#4ade80':(d.f>EP.cut?'#a78bfa':'#fbbf24');g.shadowColor=g.fillStyle;g.shadowBlur=8;g.beginPath();g.arc(q[0],q[1],3,0,6.29);g.fill()});g.shadowBlur=0;
+}
+// ---- UI ----
+const chips=$('chips');ST.forEach((s,i)=>{const b=document.createElement('button');b.className='chip';b.style.color=BC[i];b.textContent=TX[i][0];b.onclick=()=>{S.u=s[0]+.002;prev=-1};chips.appendChild(b)});
+[[1,'×1'],[.5,'×0.5'],[.2,'🐌 Slow ×0.2'],[.1,'🐌 ×0.1']].forEach(([v,l])=>{const b=document.createElement('button');b.className='b'+(v==1?' on':'');b.textContent=l;b.onclick=()=>{S.speed=v;[...$('sp').children].forEach(c=>c.classList.toggle('on',c===b))};$('sp').appendChild(b)});
+$('pl').onclick=()=>{S.play=!S.play;ui()};const ui=()=>{$('pl').textContent=S.play?'⏸ Зогсоох':'▶ Үргэлжлүүлэх';$('pl').classList.toggle('on',S.play)};
+$('sb').oninput=e=>{S.play=false;ui();S.u=e.target.value/1000*.9999;M=[]};
+$('tv').oninput=e=>{S.tv=+e.target.value;$('tvv').textContent=S.tv};$('pe').oninput=e=>{S.peep=+e.target.value;$('pev').textContent=S.peep};
+$('rr').oninput=e=>{S.rr=+e.target.value;$('rrv').textContent=S.rr};
+$('stp').onchange=e=>S.stop=e.target.checked;
+$('vt').onclick=e=>{S.vent=!S.vent;e.target.textContent='Горим: '+(S.vent?'аппаратаар амьсгалуулах':'өөрөө амьсгалах');prev=-1};
+let prev=-1,last=performance.now();
+function setCard(st){[...chips.children].forEach((c,i)=>c.classList.toggle('on',i==st));$('card').innerHTML=`<b style="color:${BC[st]}">${TX[st][0]}</b><p>${TX[st][1]}</p>${S.vent?`<p><i>${TX[st][2]}</i></p>`:''}`}
+function frame(now){
+ const dt=Math.min((now-last)/1000,.1);last=now;const ts=S.speed,sdt=S.play?dt*ts:0;
+ if(S.play){const nu=S.u+sdt/(60/S.rr);if(nu>=1)M.forEach(m=>m.late=1);S.u=nu%1}
+ const u=S.u;V=Vf(u);F=Ff(u);const st=stageOf(u);
+ if(st!==prev){if(prev>=0&&S.stop&&S.play){S.play=false;ui()}prev=st;setCard(st)}
+ if(S.play){spawn+=Math.abs(F)*sdt*45;while(spawn>1){spawn--;P.push({i:Math.random()*leaves.length|0,f:0,dir:F>0?1:-1})}
+  P.forEach(p=>p.f+=sdt*(.3+.4*Math.abs(F)));P=P.filter(p=>p.f<1);rbc+=sdt*S.hr/55;$('sb').value=u*1000}
+ g.setTransform(1,0,0,1,0,0);g.fillStyle='#0b1220';g.fillRect(0,0,cv.width,cv.height);g.setTransform(sc,0,0,sc,0,0);
+ g.save();g.translate(259,28);g.scale(S.k,S.k);g.translate(-259,-28);drawBody();drawLungs();g.restore();drawMachine(sdt);g.save();g.translate(360,0);drawAlv(sdt,u);drawChart(u);g.restore();
+ if(S.speed<.5){g.fillStyle=`rgba(251,191,36,${.6+.4*Math.sin(now/300)})`;g.font='bold 12px Segoe UI,Arial';g.textAlign='left';g.fillText('🐌 SLOW MOTION ×'+S.speed,12,592)}
+ const pr=Pr(u);
+ $('rV').textContent=(V*S.tv).toFixed(0)+' мл';$('rF').textContent=(Ff(u)*4*S.tv/1000*S.rr).toFixed(0)+' л/мин';
+ $('rPaw').textContent=pr.paw.toFixed(1);$('rPalv').textContent=pr.palv.toFixed(1);$('rPpl').textContent=pr.ppl.toFixed(1);$('rPtp').textContent=(pr.palv-pr.ppl).toFixed(1);
+ requestAnimationFrame(frame)}
+const AG=[
+{n:'Бага нас',age:'1–10 нас',kg:20,tv:140,rr:22,peep:4,fio2:'30–40%',hr:100,ie:'1:2',cmp:15,sw:3.8,res:1.8,ti:.36,pe:.49,kk:3.8,k:.8,ch:.9,bag:.6,bagL:'1 л',sat:1.05,lt:1,ar:.75,ad:160,an:'~200–300 сая',ett:'4.0–6.0',ckt:'Хүүхдийн хэлхээ',note:'Амьсгалын зам нарийн, хавирга бага багаар налуу болж байна. Альвеолын тоо 8 нас хүртэл хурдан нэмэгдэнэ. Диафрагмын үүрэг давамгай, FRC бага тул SpO₂ хурдан буурна.'},
+{n:'Өсвөр нас',age:'11–17 нас',kg:50,tv:350,rr:16,peep:5,fio2:'30–40%',hr:80,ie:'1:2',cmp:38,sw:3.2,res:1.2,ti:.39,pe:.54,kk:3.3,k:.94,ch:.97,bag:.85,bagL:'1–2 л',sat:1.02,lt:0,ar:.95,ad:230,an:'~480 сая',ett:'6.5–7.5',ckt:'Дугуй хэлхээ',note:'Анатоми насанд хүрэгчийнхтэй бараг адил: альвеолын тоо бүрэн, харин уушгийн хэмжээ өсөлтөө дуусгаж байна. Цээжний хана уян хэвээр.'},
+{n:'Насанд хүрсэн',age:'18–64 нас',kg:70,tv:500,rr:14,peep:5,fio2:'30–40%',hr:72,ie:'1:2',cmp:50,sw:3,res:1,ti:.4,pe:.55,kk:3.2,k:1,ch:1,bag:1,bagL:'2–3 л',sat:1,lt:0,ar:1,ad:250,an:'~480 сая',ett:'7.0–7.5 (эм) / 7.5–8.0 (эр)',ckt:'Дугуй хэлхээ',note:'Жишиг загвар: ~480 сая альвеол, оновчтой уян чанар, хавирга ба диафрагм хамтдаа ажиллана.'},
+{n:'Өндөр настан',age:'65+ нас',kg:70,tv:450,rr:16,peep:5,fio2:'30–40%',hr:70,ie:'1:2.5–3',cmp:65,sw:2.5,res:1.3,ti:.32,pe:.45,kk:2.2,k:1,ch:.8,bag:1,bagL:'2–3 л',sat:.6,lt:-3,ar:1.1,ad:300,an:'~480 сая, септ багасна',ett:'7.0–7.5',ckt:'Дугуй хэлхээ',note:'Уушгийн уян харимхай чанар буурч, альвеолын хана (септ) алдагдан альвеол томорно. Цээжний хана хөшиж, closing volume нэмэгдэнэ → экспираци удаан, ателектаз ба PaO₂ буурах эрсдэлтэй.'}];
+AG.forEach((a,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=a.n+' · '+a.age;b.onclick=()=>applyAge(i);$('ages').appendChild(b)});
+function applyAge(i){const a=AG[i],K=['rr','tv','peep','cmp','sw','res','k','ch','bag','bagL','sat','lt','ar','ad','an','hr'];K.forEach(k=>S[k]=a[k]);
+ TI=a.ti;PE=a.pe;KK=a.kk;ST[0][1]=ST[1][0]=TI*.375;ST[1][1]=ST[2][0]=TI;ST[2][1]=ST[3][0]=PE;
+ $('rr').value=a.rr;$('rrv').textContent=a.rr;$('tv').value=a.tv;$('tvv').textContent=a.tv;$('pe').value=a.peep;$('pev').textContent=a.peep;
+ [...$('ages').children].forEach((c,j)=>c.classList.toggle('on',j==i));
+ const R=(x,y)=>`<div class="r"><span>${x}</span><span style="text-align:right">${y}</span></div>`;
+ $('ageinfo').innerHTML=`<p style="margin:8px 0 6px;color:var(--mu)">${a.note}</p>`+R('Жин',a.kg+' кг')+R('TV (≈7 мл/кг)',a.tv+' мл')+R('RR',a.rr+' /мин')+R('PEEP',a.peep+' см H₂O')+R('FiO₂',a.fio2)+R('Зүрхний цохилт',a.hr+' /мин')+R('I:E',a.ie)+R('Compliance',a.cmp+' мл/см H₂O')+R('ETT №',a.ett)+R('Хэлхээ',a.ckt)+R('Амьсгалын уут',a.bagL)+'<p style="font-size:10px;color:var(--mu);margin:6px 0 0">Утгууд ойролцоо, сургалтын зорилготой.</p>';
+ M=[];P=[];MD=[];prev=-1}
+applyAge(2);
+requestAnimationFrame(frame);
+</script></body></html>
